@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>云便签</title><link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#ffd21c">
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}body{margin:0;background:#f5f6f8;color:#222;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC",sans-serif}.app{max-width:600px;margin:auto;height:100vh;display:flex;flex-direction:column}.top{height:62px;display:flex;align-items:center;padding:0 16px;gap:10px}.top h1{font-size:23px;margin:0;flex:1}.btn{border:0;background:transparent;font-size:21px;padding:9px;border-radius:12px}.search{margin:0 14px 10px;background:white;border-radius:14px;padding:11px 14px;box-shadow:0 2px 10px #0000000c}.search input{width:100%;border:0;outline:0;font-size:15px}.main{flex:1;overflow:auto;padding:0 14px 90px}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.note{min-height:145px;border-radius:15px;padding:14px;position:relative;box-shadow:0 2px 12px #0000000b;cursor:pointer}.note h3{margin:0 0 8px;font-size:16px}.note p{margin:0;white-space:pre-wrap;line-height:1.55;font-size:13px;opacity:.82;display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}.time{position:absolute;left:14px;bottom:9px;font-size:10px;opacity:.5}.fab{position:fixed;right:max(20px,calc((100vw - 600px)/2 + 20px));bottom:82px;width:56px;height:56px;border:0;border-radius:18px;background:#ffd21c;font-size:30px;box-shadow:0 5px 18px #0003}.nav{height:66px;background:#fff;border-top:1px solid #eee;display:flex;justify-content:space-around;align-items:center}.nav button{border:0;background:none;color:#777;font-size:11px}.nav b{display:block;font-size:21px;margin-bottom:2px}.empty{text-align:center;color:#999;padding:80px 20px}.modal{position:fixed;inset:0;background:#f5f6f8;z-index:10;display:none;flex-direction:column}.modal.show{display:flex}.editorTop{height:60px;display:flex;align-items:center;padding:0 10px;border-bottom:1px solid #ddd}.editorTop strong{flex:1;text-align:center}.save{border:0;background:#ffd21c;padding:8px 14px;border-radius:10px}.editor{flex:1;padding:20px;overflow:auto}.editor input,.editor textarea{width:100%;border:0;outline:0;background:transparent}.editor input{font-size:25px;font-weight:700;margin-bottom:15px}.editor textarea{min-height:65vh;font-size:16px;line-height:1.8;resize:none}.tools{padding:10px;display:flex;gap:8px;background:white;border-top:1px solid #ddd}.color{width:31px;height:31px;border-radius:50%;border:2px solid #aaa}.login{position:fixed;inset:0;background:#f5f6f8;z-index:20;display:flex;align-items:center;justify-content:center;padding:24px}.loginbox{background:#fff;border-radius:20px;padding:25px;width:min(420px,100%);box-shadow:0 8px 30px #0001}.loginbox h2{margin-top:0}.loginbox input{width:100%;padding:13px;margin:7px 0;border:1px solid #ddd;border-radius:10px;font-size:15px}.primary{width:100%;padding:13px;border:0;border-radius:10px;background:#ffd21c;margin-top:8px;font-weight:700}.small{font-size:12px;color:#888;margin-top:12px;line-height:1.5}.status{font-size:11px;color:#777}.dark{background:#151515;color:#eee}.dark .search,.dark .nav,.dark .tools,.dark .loginbox{background:#222}.dark .search input,.dark .editor input,.dark .editor textarea{color:#eee}.dark .nav{border-color:#333}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top"><h1 id="title">我的便签</h1><span class="status" id="status">未登录</span><button class="btn" onclick="toggleDark()">🌙</button></header>
+  <div class="search"><input id="q" placeholder="搜索便签..." oninput="render()"></div>
+  <main class="main"><div id="grid" class="grid"></div></main>
+  <button class="fab" onclick="openEditor()">＋</button>
+  <nav class="nav"><button onclick="showNotes()"> <b>📝</b>便签</button><button onclick="sync()"> <b>☁️</b>同步</button><button onclick="logout()"> <b>⚙️</b>退出</button></nav>
+</div>
+
+<section id="editorModal" class="modal">
+  <div class="editorTop"><button class="btn" onclick="closeEditor()">←</button><strong>编辑便签</strong><button class="save" onclick="saveNote()">保存</button></div>
+  <div class="editor"><input id="et" placeholder="标题"><textarea id="ec" placeholder="写点什么..."></textarea></div>
+  <div class="tools">
+    <button class="color" style="background:#fff3a6" onclick="setColor('#fff3a6')"></button>
+    <button class="color" style="background:#ffd6d6" onclick="setColor('#ffd6d6')"></button>
+    <button class="color" style="background:#d7f9e9" onclick="setColor('#d7f9e9')"></button>
+    <button class="color" style="background:#d9eaff" onclick="setColor('#d9eaff')"></button>
+    <button class="btn" onclick="pin=!pin">📌</button>
+    <button class="btn" onclick="deleteNote()">🗑️</button>
+  </div>
+</section>
+
+<section id="login" class="login">
+  <div class="loginbox">
+    <h2>☁️ 云便签</h2>
+    <div id="loginHint">登录后，换手机也能看到你的便签。</div>
+    <input id="email" type="email" placeholder="邮箱">
+    <input id="password" type="password" placeholder="密码（至少6位）">
+    <button class="primary" onclick="login(true)">登录</button>
+    <button class="primary" style="background:#eee" onclick="login(false)">注册新账号</button>
+    <div class="small">这是一个自托管版本：数据保存在你运行本项目的服务器上，不需要购买数据库。</div>
+  </div>
+</section>
+
+<script>
+if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(()=>{})}
+const API='/api';
+const CACHE_KEY='cloud_notes_cache_v2';
+const QUEUE_KEY='cloud_notes_queue_v2';
+let token=localStorage.getItem('token')||'', notes=JSON.parse(localStorage.getItem(CACHE_KEY)||'[]'), queue=JSON.parse(localStorage.getItem(QUEUE_KEY)||'[]'), editId=null, color='#fff3a6', pin=false;
+function cache(){localStorage.setItem(CACHE_KEY,JSON.stringify(notes));localStorage.setItem(QUEUE_KEY,JSON.stringify(queue))}
+function noteView(n){return {...n,id:n.id||crypto.randomUUID(),createdAt:n.createdAt||Date.now(),updatedAt:n.updatedAt||Date.now()}}
+
+async function api(path,opt={}) {
+  opt.headers=Object.assign({'Content-Type':'application/json'},opt.headers||{});
+  if(token) opt.headers.Authorization='Bearer '+token;
+  const r=await fetch(API+path,opt);
+  if(r.status===401){logout();throw Error('未登录')}
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok) throw Error(d.error||'请求失败');
+  return d;
+}
+async function login(isLogin){
+  const email=document.getElementById('email').value.trim(), password=document.getElementById('password').value;
+  if(!email||password.length<6){alert('请输入邮箱和至少6位密码');return}
+  try{
+    const d=await api(isLogin?'/login':'/register',{method:'POST',body:JSON.stringify({email,password})});
+    token=d.token;localStorage.setItem('token',token);document.getElementById('login').style.display='none';await sync();
+  }catch(e){alert(e.message)}
+}
+function logout(){token='';localStorage.removeItem('token');notes=[];document.getElementById('login').style.display='flex';render()}
+async function sync(){
+  if(!token)return;
+  if(!navigator.onLine){document.getElementById('status').textContent='离线 · 已保存在本机';return}
+  await flushQueue();
+  document.getElementById('status').textContent='同步中…';
+  try{const d=await api('/notes');
+  const remote=d.notes||[];
+  const byId=new Map(remote.map(n=>[n.id,n]));
+  notes.filter(n=>n.__local).forEach(n=>byId.set(n.id,n));
+  notes=Array.from(byId.values()).map(n=>{delete n.__local;return n});
+  cache();render();document.getElementById('status').textContent='已同步 ✓'}catch(e){document.getElementById('status').textContent='同步失败'}
+}
+function render(){
+  const q=document.getElementById('q').value.toLowerCase();
+  const list=notes.filter(n=>(n.title+n.content).toLowerCase().includes(q)).sort((a,b)=>(b.pin-a.pin)||b.updatedAt-a.updatedAt);
+  const g=document.getElementById('grid');g.innerHTML='';
+  if(!list.length){g.innerHTML='<div class="empty" style="grid-column:1/-1">📝<br>还没有便签<br><small>点击右下角 ＋ 创建</small></div>';return}
+  list.forEach(n=>{const d=document.createElement('div');d.className='note';d.style.background=n.color||'#fff3a6';d.innerHTML=`${n.pin?'<span style="position:absolute;right:10px">📌</span>':''}<h3>${esc(n.title||'无标题')}</h3><p>${esc(n.content||'')}</p><span class="time">${new Date(n.updatedAt).toLocaleString()}</span>`;d.onclick=()=>openEditor(n);g.appendChild(d)})
+}
+function openEditor(n=null){editId=n?n.id:null;color=n?.color||'#fff3a6';pin=!!n?.pin;document.getElementById('et').value=n?.title||'';document.getElementById('ec').value=n?.content||'';document.getElementById('editorModal').classList.add('show')}
+function closeEditor(){document.getElementById('editorModal').classList.remove('show')}
+async function saveNote(){
+  const title=document.getElementById('et').value.trim(),content=document.getElementById('ec').value.trim();
+  if(!title&&!content){closeEditor();return}
+  const now=Date.now();
+  try{
+    if(editId){
+      const local=notes.find(n=>n.id===editId);
+      const payload={title,content,color,pin};
+      if(local){Object.assign(local,payload,{updatedAt:now,__local:true})}
+      else notes.unshift({id:editId,...payload,createdAt:now,updatedAt:now,__local:true});
+      queue=queue.filter(x=>!(x.method==='PUT'&&x.id===editId));
+      queue.push({method:'PUT',id:editId,body:payload});
+    }else{
+      const id=crypto.randomUUID();
+      const n={id,title,content,color,pin,deleted:0,createdAt:now,updatedAt:now,__local:true};
+      notes.unshift(n); queue.push({method:'POST',body:{id,title,content,color,pin}}); editId=id;
+    }
+    cache();render();closeEditor();
+    if(navigator.onLine) await flushQueue();
+  }catch(e){alert(e.message)}
+}
+async function flushQueue(){
+  if(!token||!navigator.onLine||!queue.length)return;
+  document.getElementById('status').textContent='上传中…';
+  const pending=[...queue]; queue=[]; cache();
+  try{
+    for(const job of pending){
+      if(job.method==='POST'){
+        const d=await api('/notes',{method:'POST',body:JSON.stringify(job.body)});
+        notes=notes.map(n=>n.id===job.body.id?{...d.note}:n);
+      }else if(job.method==='PUT'){
+        const d=await api('/notes/'+job.id,{method:'PUT',body:JSON.stringify(job.body)});
+        notes=notes.map(n=>n.id===job.id?{...d.note}:n);
+      }else if(job.method==='DELETE'){
+        await api('/notes/'+job.id,{method:'DELETE'}); notes=notes.filter(n=>n.id!==job.id);
+      }
+      cache();
+    }
+    document.getElementById('status').textContent='已同步 ✓';
+  }catch(e){queue=pending.concat(queue);cache();document.getElementById('status').textContent='待联网同步';}
+}
+window.addEventListener('online',()=>{if(token)sync()});
+async function deleteNote(){if(!editId){closeEditor();return}if(!confirm('删除这条便签？'))return;notes=notes.filter(n=>n.id!==editId);queue=queue.filter(x=>!(x.id===editId));queue.push({method:'DELETE',id:editId});cache();render();closeEditor();if(navigator.onLine)await flushQueue()}
+function setColor(c){color=c}
+function showNotes(){render()}
+function toggleDark(){document.body.classList.toggle('dark');localStorage.setItem('dark',document.body.classList.contains('dark')?'1':'0')}
+function esc(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+if(localStorage.getItem('dark')==='1')document.body.classList.add('dark');
+if(token){document.getElementById('login').style.display='none';render();sync()} else render();
+</script>
+</body>
+</html>
