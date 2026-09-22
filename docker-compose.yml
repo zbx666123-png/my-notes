@@ -1,0 +1,11 @@
+services:
+  notes:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      PASSWORD_SALT: change-this-in-production
+    volumes:
+      - notes-data:/app/data
+volumes:
+  notes-data:
